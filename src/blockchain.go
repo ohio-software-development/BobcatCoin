@@ -10,58 +10,59 @@ import (
 type Block struct {
 	index uint64
 	time string
-	transactions []Transaction
-	totalTransactions uint16
-	prevHash string
+	prev_hash *string	// cryptographic pointer
 	hash string
-	nonce int8			// randomly generated number
+	nonce int8			// "number used once"
 }
 
-func genesisBlock() Block {
-	genesis := Block {
+func genesis_block() *Block {
+	genesis := &Block {
 		index: 0,
 		time: time.Now().String(),
-		transactions: []Transaction{},
-		totalTransactions: 0,
-		prevHash: "None",
+		prev_hash: nil,
 		hash: "",
 	}
-	genesis.hash = makeHash(genesis)
+
+	genesis.set_hash()
 	return genesis
 }
 
-func constructBlock(prevBlock Block, transactions []Transaction) Block {
-	var curBlock Block
+func construct_block(prev_block *Block) *Block {
+	cur_block := &Block {
+		index: prev_block.index + 1,
+		time: time.Now().String(),
+		prev_hash: &prev_block.hash,
+		nonce: 0,
+		hash: "",
+	}
 
-	curBlock.index = prevBlock.index + 1
-	curBlock.time = time.Now().String()
-	curBlock.transactions = transactions
-	curBlock.totalTransactions = 0;
-	curBlock.prevHash = prevBlock.hash
-	curBlock.nonce = 0
-	curBlock.hash = makeHash(curBlock)
-
-	return curBlock
+	cur_block.set_hash()
+	return cur_block
 }
 
-func coinString(block Block) string {
-	str := fmt.Sprintf("%d%s%s%s", block.index, block.time, block.transactions, block.prevHash)
+func (b Block) print() {
+	fmt.Printf(``)
+
+}
+
+func (b Block) get_string() string {
+	str := fmt.Sprintf("%d%s%s%s", b.index, b.time, b.prev_hash)
 	return str
 }
 
-func makeHash(block Block) string {
-	coinInfo := coinString(block)
+func (b *Block) set_hash() {
+	coinInfo := b.get_string()
 	hash := sha256.New()
 	hash.Write([]byte(coinInfo))
 
-	return hex.EncodeToString(hash.Sum(nil))
+	b.hash = hex.EncodeToString(hash.Sum(nil))
 }
 
 // it is standard that hashes start with multiple zeros
-func hashCheck(hash string) bool {
-	return hash[:4] == "0000"
+func (b  Block) hash_check() bool {
+	return b.hash[:4] == "0000"
 }
 
-func mineBlock(block Block) {
+func mine_block (block *Block) {
 	/* will code later */
 }
