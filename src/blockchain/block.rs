@@ -1,4 +1,5 @@
 use crate::blockchain::ledger::Ledger;
+use crate::blockchain::ledger::Transaction;
 use rand::Rng;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sha2::{Sha256, Digest};
@@ -8,8 +9,8 @@ const DIFFICULTY: u32 = 4; // placeholder
 
 #[derive(Clone, Debug)]
 pub struct Block {
-    pub index: u32,
-    pub timestamp: u64,
+    pub index: u64,
+    pub timestamp: u128,
     pub ledger: Ledger,
     pub prev_hash: String,
     pub nonce: u64,
@@ -25,13 +26,12 @@ trait BlockTrait: Sized + Clone {
     fn calculate_hash(&self) -> String;
 
     // mine, proof of work
-    fn mine(&mut self);
-    fn verify(&self) -> bool;
+    fn mine(&mut self, transaction: Transaction);
 
     // validity checks
-    fn is_valid(&self) -> bool;
+    fn verify(&self) -> bool;
     fn has_valid_hash(&self) -> bool;
-    fn is_valid_link(&self, prev_block: &Self) -> bool;
+    fn is_valid_link(&self, prev_block : &Self) -> bool;
 }
 
 impl BlockTrait for Block {
@@ -39,24 +39,20 @@ impl BlockTrait for Block {
 
     // constructor
     fn new (index: u64, ledger: Ledger, prev_hash: String, difficulty: u32) -> Block {
-        if is_valid(&self) {
-            Block {
-                index: index,
-                timestamp: SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis();,
-                ledger: ledger,
-                prev_hash: prev_hash,
-                nonce: rand::random(),
-                hash: String::new(),
-                difficulty: difficulty
-            };
-            block.hash = block.calculate_hash();
-            block
-        } else {
-            println!("Block cannot be created - invalid information.");
-        }
+        let mut block = Block {
+            index: index,
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            ledger: ledger,
+            prev_hash: prev_hash,
+            nonce: rand::random(),
+            hash: String::new(),
+            difficulty: difficulty
+        };
+        block.hash = block.calculate_hash();
+        block
     }
 
     // hash calculation
@@ -67,39 +63,43 @@ impl BlockTrait for Block {
         hasher.update(self.index.to_le_bytes());
         hasher.update(self.timestamp.to_le_bytes());
         // ledger once we figure out the structure
-        hasher.update(self.prev_hash.to_le_bytes());
+        hasher.update(self.prev_hash.as_bytes());
         hasher.update(self.nonce.to_le_bytes());
         hasher.update(self.difficulty.to_le_bytes());
 
-        return hasher.finalize();
+        // format as string
+        return hex::encode(hasher.finalize());
     }
 
-    fn mine (&mut self) {
-        while calculate_hash(&self) > difficulty {
-            nonce = rand::random();
+    fn mine (&mut self, transaction : Transaction) {
+        let p_hash = self.calculate_hash();
+
+        while self.calculate_hash().parse::<u32>().unwrap() > self.difficulty {
+            self.nonce = rand::random();
         }
 
         // valid block - broadcast
-        hash = calculate_hash(&self);
-        if verify(&self) {
+        if self.verify() {
             // put into ledger and update network
+            self.ledger.push(transaction);
+
+            // new block
+            let _block = Block::new(self.index + 1, self.ledger.clone(), p_hash, self.difficulty);
         }
     }
 
     // validity checks
-    fn is_valid(&self) -> bool {
-        has_valid_hash(&self) && is_valid_link(&self, prev_block: prev_block)
+    fn verify(&self) -> bool {
+        // change valid_link parameter to previous block
+        self.has_valid_hash() && self.is_valid_link(self)
     }
 
     fn has_valid_hash(&self) -> bool {
-        hash < difficulty
+        self.hash.parse::<u32>().unwrap() < self.difficulty
     }
 
-    fn is_valid_link(&self, prev_block: &Self) -> bool {
-        // check previous block
-
-        return self.prev_hash == calculate_hash(prev_block) &&
-            self.index == prev_block.index + 1 &&
-            self.timestamp <= prev_block.timestamp
+    fn is_valid_link(&self, _prev_block : &Self) -> bool {
+        // IMPLEMENT
+        return true;
     }
 }
